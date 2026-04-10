@@ -1,0 +1,97 @@
+<%- |
+  String  $ssh_listen,
+  String  $rdp_listen,
+  String  $smb_listen,
+  Integer $max_sessions,
+  Integer $idle_timeout_secs,
+  Integer $max_session_duration_secs,
+  Boolean $rdp_nla_enabled,
+  Boolean $rdp_pqc_tls,
+  String  $cipher_suite,
+  String  $pqc_kem,
+  String  $pqc_sig,
+  String  $classical_kem,
+  String  $classical_sig,
+  String  $symmetric,
+  Boolean $password_auth,
+  Boolean $certificate_auth,
+  Boolean $saml_auth,
+  Boolean $mfa_required,
+  Optional[String] $ca_cert_path,
+  Integer $rate_limit_attempts,
+  Integer $rate_limit_window_secs,
+  Boolean $mfa_totp,
+  Boolean $mfa_fido2,
+  Boolean $mfa_yubikey,
+  Optional[String] $saml_idp_metadata_url,
+  Optional[String] $saml_idp_metadata_path,
+  Optional[String] $saml_sp_entity_id,
+  Optional[String] $saml_sp_acs_url,
+  String  $saml_role_attribute,
+  String  $saml_username_attribute,
+  Integer $audit_checkpoint_interval,
+  Boolean $audit_verify_on_startup,
+  Boolean $ssh_record_input,
+  Integer $recording_retention_days,
+| -%>
+# Managed by Puppet -- DO NOT EDIT
+
+[server]
+ssh_listen = "<%= $ssh_listen %>"
+rdp_listen = "<%= $rdp_listen %>"
+smb_listen = "<%= $smb_listen %>"
+max_sessions = <%= $max_sessions %>
+idle_timeout_secs = <%= $idle_timeout_secs %>
+max_session_duration_secs = <%= $max_session_duration_secs %>
+rdp_nla_enabled = <%= $rdp_nla_enabled %>
+rdp_pqc_tls = <%= $rdp_pqc_tls %>
+
+[crypto]
+cipher_suite = "<%= $cipher_suite %>"
+pqc_kem = "<%= $pqc_kem %>"
+pqc_sig = "<%= $pqc_sig %>"
+classical_kem = "<%= $classical_kem %>"
+classical_sig = "<%= $classical_sig %>"
+symmetric = "<%= $symmetric %>"
+
+[auth]
+password_auth = <%= $password_auth %>
+certificate_auth = <%= $certificate_auth %>
+saml_auth = <%= $saml_auth %>
+mfa_required = <%= $mfa_required %>
+<% if $ca_cert_path { -%>
+ca_cert_path = "<%= $ca_cert_path %>"
+<% } -%>
+rate_limit_attempts = <%= $rate_limit_attempts %>
+rate_limit_window_secs = <%= $rate_limit_window_secs %>
+
+[auth.mfa_methods]
+totp = <%= $mfa_totp %>
+fido2 = <%= $mfa_fido2 %>
+yubikey = <%= $mfa_yubikey %>
+<% if $saml_auth { -%>
+
+[auth.saml]
+<% if $saml_idp_metadata_url { -%>
+idp_metadata_url = "<%= $saml_idp_metadata_url %>"
+<% } -%>
+<% if $saml_idp_metadata_path { -%>
+idp_metadata_path = "<%= $saml_idp_metadata_path %>"
+<% } -%>
+<% if $saml_sp_entity_id { -%>
+sp_entity_id = "<%= $saml_sp_entity_id %>"
+<% } -%>
+<% if $saml_sp_acs_url { -%>
+sp_acs_url = "<%= $saml_sp_acs_url %>"
+<% } -%>
+role_attribute = "<%= $saml_role_attribute %>"
+username_attribute = "<%= $saml_username_attribute %>"
+<% } -%>
+
+[audit]
+checkpoint_interval = <%= $audit_checkpoint_interval %>
+verify_on_startup = <%= $audit_verify_on_startup %>
+
+[recording]
+ssh_record_input = <%= $ssh_record_input %>
+retention_days = <%= $recording_retention_days %>

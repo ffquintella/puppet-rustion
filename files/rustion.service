@@ -1,0 +1,39 @@
+[Unit]
+Description=Rustion Bastion Server
+Documentation=https://github.com/ffquintella/Rustion
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=rustion
+Group=rustion
+ExecStart=/usr/bin/rustion serve --config /opt/rustion/rustion.toml
+PIDFile=/var/run/rustion/rustion.pid
+Restart=on-failure
+RestartSec=5
+
+# Runtime directory (systemd creates /run/rustion owned by rustion:rustion)
+RuntimeDirectory=rustion
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/log/rustion /var/lib/rustion /opt/rustion
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
