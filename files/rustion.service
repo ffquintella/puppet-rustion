@@ -8,6 +8,9 @@ Wants=network-online.target
 Type=notify
 User=rustion
 Group=rustion
+PermissionsStartOnly=true
+ExecStartPre=/usr/bin/install -d -o rustion -g rustion -m 0750 /var/log/rustion /var/log/rustion/audit
+ExecStartPre=/bin/sh -c 'f=/var/log/rustion/rustion.log.$(date +%F); if [ -e "$f" ]; then /usr/bin/chown rustion:rustion "$f" && /usr/bin/chmod 0640 "$f"; else /usr/bin/install -o rustion -g rustion -m 0640 /dev/null "$f"; fi'
 ExecStart=/usr/bin/rustion serve --config /opt/rustion/rustion.toml
 PIDFile=/var/run/rustion/rustion.pid
 Restart=on-failure
