@@ -160,6 +160,26 @@
 #   Optional hash of approved authority records to drop into
 #   `authorities_dir` as YAML files. Use for GitOps-managed enrolment; for the
 #   approval workflow, leave undef and use the `rustion authority` CLI.
+# @param manage_selinux
+#   When true, label the rustion directories and ports for SELinux via
+#   `semanage` / `restorecon`. No-op on Debian-family hosts.
+# @param selinux_config_type
+#   SELinux file context type applied to `config_dir` (default `etc_t`).
+# @param selinux_data_type
+#   SELinux file context type applied to `data_dir` (default `var_lib_t`).
+# @param selinux_log_type
+#   SELinux file context type applied to `log_dir` (default `var_log_t`).
+# @param selinux_run_type
+#   SELinux file context type applied to `/var/run/rustion` (default `var_run_t`).
+# @param selinux_ssh_port_type
+#   SELinux port type for the SSH listener (default `ssh_port_t`).
+# @param selinux_rdp_port_type
+#   SELinux port type for the RDP listener (default `rdp_port_t`).
+# @param selinux_smb_port_type
+#   SELinux port type for the SMB listener (default `smbd_port_t`).
+# @param selinux_bastionvault_port_type
+#   SELinux port type for the BastionVault control-plane listener
+#   (default `http_port_t`).
 #
 class rustion (
   String                                               $package_name              = 'rustion',
@@ -226,6 +246,15 @@ class rustion (
   Integer                                              $bastionvault_health_rate_per_source_per_sec   = 4,
   Integer                                              $bastionvault_health_rate_per_authority_per_sec = 10,
   Optional[Hash]                                       $bastionvault_authorities                      = undef,
+  Boolean                                              $manage_selinux                                = false,
+  String                                               $selinux_config_type                           = 'etc_t',
+  String                                               $selinux_data_type                             = 'var_lib_t',
+  String                                               $selinux_log_type                              = 'var_log_t',
+  String                                               $selinux_run_type                              = 'var_run_t',
+  String                                               $selinux_ssh_port_type                         = 'ssh_port_t',
+  String                                               $selinux_rdp_port_type                         = 'rdp_port_t',
+  String                                               $selinux_smb_port_type                         = 'smbd_port_t',
+  String                                               $selinux_bastionvault_port_type                = 'http_port_t',
 ) {
 
   $config_file = "${config_dir}/rustion.toml"
@@ -573,6 +602,12 @@ class rustion (
         },
       }
     }
+  }
+
+  # --- Optional SELinux configuration ---
+
+  if $manage_selinux {
+    include rustion::selinux
   }
 
 }

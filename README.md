@@ -137,6 +137,27 @@ rustion::mfa_required: true
 | `targets` | `Optional[Hash]` | `undef` | Target definitions (creates YAML files) |
 | `roles` | `Optional[Hash]` | `undef` | Role definitions (creates YAML files) |
 
+### SELinux (optional)
+
+When `manage_selinux => true`, the module includes the `rustion::selinux`
+class which labels the rustion directories and listening ports via
+`semanage` / `restorecon`. A no-op on Debian-family hosts and on any host
+where SELinux is disabled at runtime (every exec is guarded by
+`selinuxenabled`). Implemented with `exec` resources, so no extra Puppet
+module dependency is required.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `manage_selinux` | `Boolean` | `false` | Enable SELinux labeling for rustion paths and ports |
+| `selinux_config_type` | `String` | `'etc_t'` | File context type for `config_dir` |
+| `selinux_data_type` | `String` | `'var_lib_t'` | File context type for `data_dir` |
+| `selinux_log_type` | `String` | `'var_log_t'` | File context type for `log_dir` |
+| `selinux_run_type` | `String` | `'var_run_t'` | File context type for `/var/run/rustion` |
+| `selinux_ssh_port_type` | `String` | `'ssh_port_t'` | Port type for the SSH listener |
+| `selinux_rdp_port_type` | `String` | `'rdp_port_t'` | Port type for the RDP listener |
+| `selinux_smb_port_type` | `String` | `'smbd_port_t'` | Port type for the SMB listener |
+| `selinux_bastionvault_port_type` | `String` | `'http_port_t'` | Port type for the BastionVault control-plane listener (only labeled when `bastionvault_enabled` is true) |
+
 ### BastionVault Control-Plane Integration
 
 Renders the `[control_plane]` and `[control_plane.health]` sections in
@@ -214,6 +235,14 @@ class { 'rustion':
 ```puppet
 class { 'rustion':
   version => '0.7.16',
+}
+```
+
+### Enable SELinux labeling
+
+```puppet
+class { 'rustion':
+  manage_selinux => true,
 }
 ```
 

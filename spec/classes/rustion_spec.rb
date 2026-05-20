@@ -138,6 +138,20 @@ describe 'rustion' do
         it { is_expected.not_to contain_file('/srv/application-config/rustion/authorities') }
       end
 
+      # NOTE: regent's mock interpreter only autoloads manifests/init.pp from
+      # each module, so it can't see manifests/selinux.pp or its defined types.
+      # We only assert what regent can verify here; the SELinux exec resources
+      # themselves are covered by real-Puppet integration runs.
+      context 'with manage_selinux => true' do
+        let(:params) { { manage_selinux: true } }
+
+        it { is_expected.to compile }
+      end
+
+      context 'with manage_selinux => false (default)' do
+        it { is_expected.not_to contain_class('rustion::selinux') }
+      end
+
       context 'with custom listen addresses' do
         let(:params) do
           {
