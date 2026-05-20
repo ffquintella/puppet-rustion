@@ -9,7 +9,7 @@ describe 'rustion' do
         it { is_expected.to compile }
 
         # Package
-        it { is_expected.to contain_package('rustion').with_ensure('present') }
+        it { is_expected.to contain_package('rustion-server').with_ensure('present') }
 
         # User and group
         it { is_expected.to contain_group('rustion').with_ensure('present').with_system(true) }
@@ -98,7 +98,7 @@ describe 'rustion' do
         let(:params) { { version: '0.7.16' } }
 
         it { is_expected.to compile }
-        it { is_expected.to contain_package('rustion').with_ensure('0.7.16') }
+        it { is_expected.to contain_package('rustion-server').with_ensure('0.7.16') }
       end
 
       context 'with bastionvault_enabled => true (full)' do
@@ -142,6 +142,28 @@ describe 'rustion' do
       # each module, so it can't see manifests/selinux.pp or its defined types.
       # We only assert what regent can verify here; the SELinux exec resources
       # themselves are covered by real-Puppet integration runs.
+      context 'with manage_package => false' do
+        let(:params) { { manage_package: false } }
+
+        it { is_expected.to compile }
+        it { is_expected.not_to contain_package('rustion-server') }
+      end
+
+      context 'with manage_repo => true on RedHat' do
+        let(:params) do
+          {
+            manage_repo: true,
+            repo_baseurl: 'https://repo.example.com/rustion/el9/',
+            repo_gpgkey: 'https://repo.example.com/rustion/gpg.key',
+          }
+        end
+
+        if os !~ /ubuntu|debian/
+          it { is_expected.to compile }
+          it { is_expected.to contain_yumrepo('rustion').with_baseurl('https://repo.example.com/rustion/el9/').with_gpgkey('https://repo.example.com/rustion/gpg.key').with_enabled('1') }
+        end
+      end
+
       context 'with manage_selinux => true' do
         let(:params) { { manage_selinux: true } }
 

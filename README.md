@@ -52,7 +52,15 @@ rustion::mfa_required: true
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `package_name` | `String` | `'rustion'` | Package name |
+| `package_name` | `String` | `'rustion-server'` | Name of the Rustion package |
 | `package_ensure` | `String` | `'present'` | Package ensure value (used when `version` is unset) |
+| `manage_package` | `Boolean` | `true` | Set to `false` to install rustion out-of-band and skip the `Package` resource |
+| `manage_repo` | `Boolean` | `false` | Manage a yumrepo / apt source for rustion before installing the package |
+| `repo_baseurl` | `Optional[String]` | `undef` | Base URL of the rustion package repository (required when `manage_repo` is true) |
+| `repo_gpgkey` | `Optional[String]` | `undef` | URL of the repository's GPG public key |
+| `repo_gpgcheck` | `Boolean` | `true` | Enforce GPG verification of repository packages |
+| `repo_name` | `String` | `'rustion'` | Repository title (yumrepo id / apt source filename) |
+| `repo_descr` | `String` | `'Rustion Bastion Server'` | Human-readable repository description |
 | `version` | `Optional[String]` | `undef` | Pin a specific Rustion package version (e.g. `'0.7.16'`). Overrides `package_ensure`. |
 | `manage_user` | `Boolean` | `true` | Manage the rustion system user/group |
 | `manage_service` | `Boolean` | `true` | Manage the systemd service |
@@ -227,6 +235,24 @@ class { 'rustion':
   saml_idp_metadata_url => 'https://idp.example.com/saml/metadata',
   saml_sp_entity_id     => 'https://bastion.example.com/saml',
   saml_sp_acs_url       => 'https://bastion.example.com/saml/acs',
+}
+```
+
+### Pull rustion from a custom yum repository
+
+```puppet
+class { 'rustion':
+  manage_repo  => true,
+  repo_baseurl => 'https://repo.example.com/rustion/el9/',
+  repo_gpgkey  => 'https://repo.example.com/rustion/RPM-GPG-KEY-rustion',
+}
+```
+
+### Install rustion out-of-band (skip the Package resource)
+
+```puppet
+class { 'rustion':
+  manage_package => false,
 }
 ```
 

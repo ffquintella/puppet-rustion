@@ -31,6 +31,24 @@
 #   Whether to manage the rustion system user and group
 # @param manage_service
 #   Whether to manage the systemd service
+# @param manage_package
+#   Whether to manage the rustion package. Set to false to install
+#   rustion out-of-band (manual rpm/deb, container image, etc.) and let
+#   Puppet manage only the user, directories, config, and service.
+# @param manage_repo
+#   Whether to create a package repository (yumrepo / apt source) for rustion
+#   before installing the package. Requires `repo_baseurl`.
+# @param repo_baseurl
+#   Base URL of the rustion package repository (required when
+#   `manage_repo` is true).
+# @param repo_gpgkey
+#   URL of the GPG public key used to sign the repository (optional).
+# @param repo_gpgcheck
+#   Whether to enforce GPG verification of repository packages.
+# @param repo_name
+#   Repository name (yumrepo title / apt source list filename).
+# @param repo_descr
+#   Human-readable repository description (`name=` line in yumrepo).
 # @param service_name
 #   Name of the systemd service
 # @param service_ensure
@@ -182,11 +200,18 @@
 #   (default `http_port_t`).
 #
 class rustion (
-  String                                               $package_name              = 'rustion',
+  String                                               $package_name              = 'rustion-server',
   String                                               $package_ensure            = 'present',
   Optional[String]                                     $version                   = undef,
   Boolean                                              $manage_user               = true,
   Boolean                                              $manage_service            = true,
+  Boolean                                              $manage_package            = true,
+  Boolean                                              $manage_repo               = false,
+  Optional[String]                                     $repo_baseurl              = undef,
+  Optional[String]                                     $repo_gpgkey               = undef,
+  Boolean                                              $repo_gpgcheck             = true,
+  String                                               $repo_name                 = 'rustion',
+  String                                               $repo_descr                = 'Rustion Bastion Server',
   String                                               $service_name              = 'rustion',
   Stdlib::Ensure::Service                              $service_ensure            = 'running',
   Boolean                                              $service_enable            = true,
@@ -311,14 +336,84 @@ class rustion (
     }
   }
 
+  # --- Package repository (optional) ---
+
+  if $manage_repo {
+    if $repo_baseurl == undef {
+      fail('rustion: repo_baseurl is required when manage_repo is true')
+    }
+
+    $_os_family = $facts['os']['family']
+    $_gpgcheck_str = $repo_gpgcheck ? {
+      true  => '1',
+      false => '0',
+    }
+
+    if $_os_family == 'RedHat' {
+      yumrepo { $repo_name:
+        ensure   => 'present',
+        descr    => $repo_descr,
+        baseurl  => $repo_baseurl,
+        enabled  => '1',
+        gpgcheck => $_gpgcheck_str,
+        gpgkey   => $repo_gpgkey,
+        before   => Package[$package_name],
+      }
+    } else {
+      if $_os_family == 'Debian' {
+        $_apt_list = "/etc/apt/sources.list.d/${repo_name}.list"
+
+        file { $_apt_list:
+          ensure  => 'file',
+          owner   => 'root',
+          group   => 'root',
+          mode    => '0644',
+          content => "deb ${repo_baseurl} stable main\n",
+          before  => Package[$package_name],
+        }
+
+        if $repo_gpgkey {
+          exec { "rustion-apt-key-${repo_name}":
+            command => "/usr/bin/curl -fsSL ${repo_gpgkey} -o /etc/apt/keyrings/${repo_name}.gpg",
+            creates => "/etc/apt/keyrings/${repo_name}.gpg",
+            path    => ['/usr/bin', '/bin', '/usr/sbin', '/sbin'],
+            before  => File[$_apt_list],
+          }
+        }
+
+        exec { "rustion-apt-update-${repo_name}":
+          command     => '/usr/bin/apt-get update',
+          refreshonly => true,
+          subscribe   => File[$_apt_list],
+          before      => Package[$package_name],
+        }
+      } else {
+        fail("rustion: manage_repo not supported on os.family '${_os_family}'")
+      }
+    }
+  }
+
   # --- Package ---
 
-  package { $package_name:
-    ensure  => $_package_ensure,
-    require => $manage_user ? {
-      true  => User[$user],
-      false => undef,
-    },
+  if $manage_package {
+    package { $package_name:
+      ensure  => $_package_ensure,
+      require => $manage_user ? {
+        true  => User[$user],
+        false => undef,
+      },
+    }
+  }
+
+  # Dependency arrays used by directory / service resources so we can drop
+  # the Package reference cleanly when `manage_package => false`.
+  $_dir_require = $manage_package ? {
+    true  => [Package[$package_name], Class['baseapp']],
+    false => [Class['baseapp']],
+  }
+  $_pkg_require = $manage_package ? {
+    true  => [Package[$package_name]],
+    false => [],
   }
 
   # --- Directories ---
@@ -400,7 +495,7 @@ class rustion (
     owner   => $user,
     group   => $group,
     mode    => '0755',
-    require => Package[$package_name],
+    require => $_pkg_require,
   }
 
   # --- BastionVault control-plane directories ---
