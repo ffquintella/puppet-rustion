@@ -1,6 +1,6 @@
 {
   "name": "ffquintella-rustion",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": "Felipe F. Quintella",
   "summary": "Installs and configures the Rustion bastion server",
   "license": "MIT",

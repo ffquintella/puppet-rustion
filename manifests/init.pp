@@ -133,6 +133,14 @@
 #   Record SSH input keystrokes (off by default for security)
 # @param recording_retention_days
 #   Session recording retention in days
+# @param log_file
+#   Path to the daily-rotated JSON log file rustion writes to. Defaults to
+#   `${log_dir}/rustion.log` so the rustion binary stays inside the
+#   `ReadWritePaths` whitelist of the systemd unit.
+# @param console_format
+#   Console log format (`json` for structured logs, `text` for human-readable).
+# @param log_level
+#   Rustion log level (`trace`, `debug`, `info`, `warn`, `error`).
 # @param users
 #   Optional hash of user definitions to create as YAML files
 # @param targets
@@ -254,6 +262,9 @@ class rustion (
   Boolean                                              $audit_verify_on_startup   = true,
   Boolean                                              $ssh_record_input          = false,
   Integer                                              $recording_retention_days  = 90,
+  Optional[Stdlib::Absolutepath]                       $log_file                  = undef,
+  Enum['json', 'text']                                 $console_format            = 'json',
+  Enum['trace', 'debug', 'info', 'warn', 'error']      $log_level                 = 'info',
   Optional[Hash]                                       $users                     = undef,
   Optional[Hash]                                       $targets                   = undef,
   Optional[Hash]                                       $roles                     = undef,
@@ -288,6 +299,11 @@ class rustion (
   $_package_ensure = $version ? {
     undef   => $package_ensure,
     default => $version,
+  }
+
+  $_log_file = $log_file ? {
+    undef   => "${log_dir}/rustion.log",
+    default => $log_file,
   }
 
   # --- BastionVault control-plane defaults derived from $config_dir ---
@@ -576,6 +592,12 @@ class rustion (
         audit_verify_on_startup   => $audit_verify_on_startup,
         ssh_record_input          => $ssh_record_input,
         recording_retention_days  => $recording_retention_days,
+        config_dir                => $config_dir,
+        data_dir                  => $data_dir,
+        log_dir                   => $log_dir,
+        log_file                  => $_log_file,
+        console_format            => $console_format,
+        log_level                 => $log_level,
         bastionvault_enabled                            => $bastionvault_enabled,
         bastionvault_bind                               => $bastionvault_bind,
         bastionvault_tls_cert                           => $bastionvault_tls_cert,

@@ -33,6 +33,12 @@
   Boolean $audit_verify_on_startup,
   Boolean $ssh_record_input,
   Integer $recording_retention_days,
+  String  $config_dir,
+  String  $data_dir,
+  String  $log_dir,
+  String  $log_file,
+  String  $console_format,
+  String  $log_level,
   Boolean          $bastionvault_enabled,
   String           $bastionvault_bind,
   Optional[String] $bastionvault_tls_cert,
@@ -76,6 +82,9 @@ ca_cert_path = "<%= $ca_cert_path %>"
 <% } -%>
 rate_limit_attempts = <%= $rate_limit_attempts %>
 rate_limit_window_secs = <%= $rate_limit_window_secs %>
+users_dir = "<%= $config_dir %>/users"
+targets_dir = "<%= $config_dir %>/targets"
+roles_dir = "<%= $config_dir %>/roles"
 
 [auth.mfa_methods]
 totp = <%= $mfa_totp %>
@@ -101,12 +110,20 @@ username_attribute = "<%= $saml_username_attribute %>"
 <% } -%>
 
 [audit]
+log_dir = "<%= $log_dir %>/audit"
+signing_key_dir = "<%= $config_dir %>/audit-keys"
 checkpoint_interval = <%= $audit_checkpoint_interval %>
 verify_on_startup = <%= $audit_verify_on_startup %>
 
 [recording]
+base_dir = "<%= $data_dir %>/recordings"
 ssh_record_input = <%= $ssh_record_input %>
 retention_days = <%= $recording_retention_days %>
+
+[logging]
+log_level = "<%= $log_level %>"
+log_file = "<%= $log_file %>"
+console_format = "<%= $console_format %>"
 <% if $bastionvault_enabled { -%>
 
 # --- BastionVault control-plane integration ---

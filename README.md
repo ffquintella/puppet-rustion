@@ -238,6 +238,29 @@ class { 'rustion':
 }
 ```
 
+### First-run admin user
+
+Rustion refuses to start without at least one user — on first boot it prints
+`No users found. Creating default admin account.` and tries to prompt for a
+password on stdin, which fails under systemd
+(`failed to read password: No such device or address`). Seed an admin via
+the `users` param so the service can come up cleanly:
+
+```puppet
+class { 'rustion':
+  users => {
+    'admin' => {
+      'username'      => 'admin',
+      'password_hash' => 'argon2id$v=19$m=65536,t=3,p=4$...',
+      'roles'         => ['admin'],
+    },
+  },
+}
+```
+
+Generate the password hash out of band with `rustion user hash` (or whatever
+your release ships) and store it in Hiera + eyaml.
+
 ### Pull rustion from a custom yum repository
 
 ```puppet
