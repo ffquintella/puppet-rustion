@@ -1,6 +1,6 @@
 {
   "name": "ffquintella-rustion",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Felipe F. Quintella",
   "summary": "Installs and configures the Rustion bastion server",
   "license": "MIT",
@@ -9,8 +9,8 @@
   "issues_url": "https://github.com/ffquintella/puppet-rustion/issues",
   "dependencies": [
     {
-      "name": "puppetlabs/stdlib",
-      "version_requirement": ">= 9.0.0 < 10.0.0"
+      "name": "ffquintella/baseapp",
+      "version_requirement": "= 0.2.1"
     }
   ],
   "operatingsystem_support": [

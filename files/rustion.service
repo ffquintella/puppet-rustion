@@ -9,9 +9,9 @@ Type=notify
 User=rustion
 Group=rustion
 PermissionsStartOnly=true
-ExecStartPre=/usr/bin/install -d -o rustion -g rustion -m 0750 /var/log/rustion /var/log/rustion/audit
-ExecStartPre=/bin/sh -c 'f=/var/log/rustion/rustion.log.$(date +%%F); if [ -e "$f" ]; then /usr/bin/chown rustion:rustion "$f" && /usr/bin/chmod 0640 "$f"; else /usr/bin/install -o rustion -g rustion -m 0640 /dev/null "$f"; fi'
-ExecStart=/usr/bin/rustion serve --config /opt/rustion/rustion.toml
+ExecStartPre=/usr/bin/install -d -o rustion -g rustion -m 0750 /srv/application-logs/rustion /srv/application-logs/rustion/audit
+ExecStartPre=/bin/sh -c 'f=/srv/application-logs/rustion/rustion.log.$(date +%%F); if [ -e "$f" ]; then /usr/bin/chown rustion:rustion "$f" && /usr/bin/chmod 0640 "$f"; else /usr/bin/install -o rustion -g rustion -m 0640 /dev/null "$f"; fi'
+ExecStart=/usr/bin/rustion serve --config /srv/application-config/rustion/rustion.toml
 PIDFile=/run/rustion/rustion.pid
 Restart=on-failure
 RestartSec=5
@@ -22,7 +22,7 @@ RuntimeDirectory=rustion
 # Security hardening
 NoNewPrivileges=yes
 ProtectSystem=strict
-ReadWritePaths=/var/log/rustion /var/lib/rustion /opt/rustion
+ReadWritePaths=/srv/application-logs/rustion /srv/application-data/rustion /srv/application-config/rustion
 ProtectHome=yes
 PrivateTmp=yes
 ProtectKernelTunables=yes

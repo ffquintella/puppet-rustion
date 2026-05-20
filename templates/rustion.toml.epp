@@ -33,6 +33,18 @@
   Boolean $audit_verify_on_startup,
   Boolean $ssh_record_input,
   Integer $recording_retention_days,
+  Boolean          $bastionvault_enabled,
+  String           $bastionvault_bind,
+  Optional[String] $bastionvault_tls_cert,
+  Optional[String] $bastionvault_tls_key,
+  String           $bastionvault_identity_pub,
+  String           $bastionvault_identity_priv,
+  String           $bastionvault_authorities_dir,
+  Boolean          $bastionvault_recording_fetch_enabled,
+  Integer          $bastionvault_active_session_cap,
+  Integer          $bastionvault_max_envelope_bytes,
+  Integer          $bastionvault_health_rate_per_source_per_sec,
+  Integer          $bastionvault_health_rate_per_authority_per_sec,
 | -%>
 # Managed by Puppet -- DO NOT EDIT
 
@@ -95,3 +107,27 @@ verify_on_startup = <%= $audit_verify_on_startup %>
 [recording]
 ssh_record_input = <%= $ssh_record_input %>
 retention_days = <%= $recording_retention_days %>
+<% if $bastionvault_enabled { -%>
+
+# --- BastionVault control-plane integration ---
+# See docs/bastionvault-integration.md in the Rustion repo.
+[control_plane]
+enabled = true
+bind = "<%= $bastionvault_bind %>"
+<% if $bastionvault_tls_cert { -%>
+tls_cert = "<%= $bastionvault_tls_cert %>"
+<% } -%>
+<% if $bastionvault_tls_key { -%>
+tls_key  = "<%= $bastionvault_tls_key %>"
+<% } -%>
+identity_pub  = "<%= $bastionvault_identity_pub %>"
+identity_priv = "<%= $bastionvault_identity_priv %>"
+authorities_dir = "<%= $bastionvault_authorities_dir %>"
+recording_fetch_enabled = <%= $bastionvault_recording_fetch_enabled %>
+active_session_cap = <%= $bastionvault_active_session_cap %>
+max_envelope_bytes = <%= $bastionvault_max_envelope_bytes %>
+
+[control_plane.health]
+rate_per_source_per_sec = <%= $bastionvault_health_rate_per_source_per_sec %>
+rate_per_authority_per_sec = <%= $bastionvault_health_rate_per_authority_per_sec %>
+<% } -%>

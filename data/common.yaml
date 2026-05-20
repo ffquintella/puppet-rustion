@@ -1,1 +1,4 @@
 ---
+baseapp::owner: 'rustion'
+baseapp::group: 'rustion'
+baseapp::mode: '0750'
