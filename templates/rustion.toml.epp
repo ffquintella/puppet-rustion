@@ -7,6 +7,8 @@
   Integer $max_session_duration_secs,
   Boolean $rdp_nla_enabled,
   Boolean $rdp_pqc_tls,
+  String  $ssh_host_key_path,
+  String  $credential_key_path,
   String  $cipher_suite,
   String  $pqc_kem,
   String  $pqc_sig,
@@ -63,6 +65,7 @@ idle_timeout_secs = <%= $idle_timeout_secs %>
 max_session_duration_secs = <%= $max_session_duration_secs %>
 rdp_nla_enabled = <%= $rdp_nla_enabled %>
 rdp_pqc_tls = <%= $rdp_pqc_tls %>
+ssh_host_key_path = "<%= $ssh_host_key_path %>"
 
 [crypto]
 cipher_suite = "<%= $cipher_suite %>"
@@ -85,6 +88,7 @@ rate_limit_window_secs = <%= $rate_limit_window_secs %>
 users_dir = "<%= $config_dir %>/users"
 targets_dir = "<%= $config_dir %>/targets"
 roles_dir = "<%= $config_dir %>/roles"
+credential_key_path = "<%= $credential_key_path %>"
 
 [auth.mfa_methods]
 totp = <%= $mfa_totp %>

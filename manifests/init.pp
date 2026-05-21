@@ -73,6 +73,16 @@
 #   Base data directory (under /srv/application-data as defined by baseapp)
 # @param log_dir
 #   Base log directory (matches the rustion binary default of `/var/log/rustion`)
+# @param ssh_host_key_path
+#   Path to the persistent SSH host key (Ed25519, raw 32 bytes). Rustion
+#   generates this on first run if missing. Defaults to
+#   `${config_dir}/ssh_host_ed25519_key` so the file lives in a directory
+#   the rustion user can write to. Must be stable across restarts to avoid
+#   client host-key warnings.
+# @param credential_key_path
+#   Path to the AES-256 master key used to encrypt stored target credentials.
+#   Rustion generates this on first run if missing. Defaults to
+#   `${config_dir}/credential_key`.
 # @param ssh_listen
 #   SSH proxy listen address
 # @param rdp_listen
@@ -237,6 +247,8 @@ class rustion (
   Stdlib::Absolutepath                                 $config_dir                = '/srv/application-config/rustion',
   Stdlib::Absolutepath                                 $data_dir                  = '/srv/application-data/rustion',
   Stdlib::Absolutepath                                 $log_dir                   = '/var/log/rustion',
+  Optional[Stdlib::Absolutepath]                       $ssh_host_key_path         = undef,
+  Optional[Stdlib::Absolutepath]                       $credential_key_path       = undef,
   String                                               $ssh_listen                = '127.0.0.1:2222',
   String                                               $rdp_listen                = '127.0.0.1:3389',
   String                                               $smb_listen                = '127.0.0.1:4445',
@@ -327,6 +339,16 @@ class rustion (
   $_log_file = $log_file ? {
     undef   => "${log_dir}/rustion.log",
     default => $log_file,
+  }
+
+  $_ssh_host_key_path = $ssh_host_key_path ? {
+    undef   => "${config_dir}/ssh_host_ed25519_key",
+    default => $ssh_host_key_path,
+  }
+
+  $_credential_key_path = $credential_key_path ? {
+    undef   => "${config_dir}/credential_key",
+    default => $credential_key_path,
   }
 
   # --- BastionVault control-plane defaults derived from $config_dir ---
@@ -589,6 +611,8 @@ class rustion (
         max_session_duration_secs => $max_session_duration_secs,
         rdp_nla_enabled           => $rdp_nla_enabled,
         rdp_pqc_tls              => $rdp_pqc_tls,
+        ssh_host_key_path         => $_ssh_host_key_path,
+        credential_key_path       => $_credential_key_path,
         cipher_suite              => $cipher_suite,
         pqc_kem                   => $pqc_kem,
         pqc_sig                   => $pqc_sig,

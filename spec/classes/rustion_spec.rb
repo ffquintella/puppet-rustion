@@ -49,6 +49,8 @@ describe 'rustion' do
         it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{\[audit\]}) }
         it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{\[recording\]}) }
         it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{\[auth\.saml\]}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{ssh_host_key_path = "/srv/application-config/rustion/ssh_host_ed25519_key"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{credential_key_path = "/srv/application-config/rustion/credential_key"}) }
 
         # Systemd unit file
         it { is_expected.to contain_file('/usr/lib/systemd/system/rustion.service').with_ensure('file').with_owner('root').with_mode('0644') }
