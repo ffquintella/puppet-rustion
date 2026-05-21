@@ -31,6 +31,14 @@
 #   Whether to manage the rustion system user and group
 # @param manage_service
 #   Whether to manage the systemd service
+# @param bootstrap_complete
+#   Set to true once the rustion admin account has been bootstrapped on this
+#   host. The first time rustion starts it prompts interactively to create the
+#   default admin account; running under systemd that prompt fails (no TTY),
+#   so the module installs and configures rustion but refuses to start the
+#   service until an operator has run the interactive first-start by hand
+#   (e.g. `sudo -u rustion rustion serve --config /srv/application-config/rustion/rustion.toml`)
+#   and then flipped this flag (via Hiera) to true.
 # @param manage_package
 #   Whether to manage the rustion package. Set to false to install
 #   rustion out-of-band (manual rpm/deb, container image, etc.) and let
@@ -213,6 +221,7 @@ class rustion (
   Optional[String]                                     $version                   = undef,
   Boolean                                              $manage_user               = true,
   Boolean                                              $manage_service            = true,
+  Boolean                                              $bootstrap_complete        = false,
   Boolean                                              $manage_package            = true,
   Boolean                                              $manage_repo               = false,
   Optional[String]                                     $repo_baseurl              = undef,
@@ -294,6 +303,20 @@ class rustion (
 ) {
 
   $config_file = "${config_dir}/rustion.toml"
+
+  # The first rustion start prompts on TTY for an admin password; under systemd
+  # that always fails. Keep the service unmanaged until the operator has run
+  # the interactive bootstrap and set `bootstrap_complete => true`.
+  $_manage_service = $manage_service and $bootstrap_complete
+
+  if $manage_service and !$bootstrap_complete {
+    $_bootstrap_msg = "rustion: service not started - admin account has not been bootstrapped on this host. Run the interactive first-start as the rustion user to create the default admin: sudo -u ${user} ${service_name} serve --config ${config_dir}/${service_name}.toml ; follow the password prompt, then stop the process (Ctrl-C), set rustion::bootstrap_complete: true in Hiera, and re-run the agent."
+
+    notify { 'rustion-bootstrap-required':
+      message  => $_bootstrap_msg,
+      loglevel => 'warning',
+    }
+  }
 
   # `version` overrides `package_ensure` when set.
   $_package_ensure = $version ? {
@@ -612,7 +635,7 @@ class rustion (
         bastionvault_health_rate_per_authority_per_sec  => $bastionvault_health_rate_per_authority_per_sec,
     }),
     require => File[$config_dir],
-    notify  => $manage_service ? {
+    notify  => $_manage_service ? {
       true  => Service[$service_name],
       false => undef,
     },
@@ -626,7 +649,7 @@ class rustion (
     group  => 'root',
     mode   => '0644',
     source => 'puppet:///modules/rustion/rustion.service',
-    notify => $manage_service ? {
+    notify => $_manage_service ? {
       true  => Service[$service_name],
       false => undef,
     },
@@ -634,7 +657,7 @@ class rustion (
 
   # --- Service ---
 
-  if $manage_service {
+  if $_manage_service {
     service { $service_name:
       ensure    => $service_ensure,
       enable    => $service_enable,
@@ -657,7 +680,7 @@ class rustion (
         mode    => '0640',
         content => stdlib::to_yaml($data),
         require => File["${config_dir}/users"],
-        notify  => $manage_service ? {
+        notify  => $_manage_service ? {
           true  => Service[$service_name],
           false => undef,
         },
@@ -674,7 +697,7 @@ class rustion (
         mode    => '0640',
         content => stdlib::to_yaml($data),
         require => File["${config_dir}/targets"],
-        notify  => $manage_service ? {
+        notify  => $_manage_service ? {
           true  => Service[$service_name],
           false => undef,
         },
@@ -691,7 +714,7 @@ class rustion (
         mode    => '0640',
         content => stdlib::to_yaml($data),
         require => File["${config_dir}/roles"],
-        notify  => $manage_service ? {
+        notify  => $_manage_service ? {
           true  => Service[$service_name],
           false => undef,
         },
@@ -713,7 +736,7 @@ class rustion (
           true  => File[$_bv_authorities_dir],
           false => File[$config_dir],
         },
-        notify  => $manage_service ? {
+        notify  => $_manage_service ? {
           true  => Service[$service_name],
           false => undef,
         },
