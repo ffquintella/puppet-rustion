@@ -1,0 +1,20 @@
+# Sample BastionVault authority enrolment request.
+#
+# Rename to <name>.yaml (e.g. bv-prod.yaml) and fill in the values exported
+# by `bvault rustion master export` on the BastionVault side. Then approve
+# with:
+#
+#   rustion authority list-pending
+#   rustion authority approve --name <name> \
+#       --max-session-secs 28800 --replay-window-secs 300
+#   rustion reload
+#
+# Files ending in .sample are ignored by rustion; only *.yaml is scanned.
+
+schema_version: 1
+name: bv-prod
+pubkey_ed25519_b64: "<replace with ed25519 pubkey from bvault export>"
+pubkey_mldsa65_b64: "<replace with ml-dsa-65 pubkey from bvault export>"
+deployment_id: "<replace with deployment id from bvault export>"
+description: "BV prod cluster"
+submitted_at: "1970-01-01T00:00:00.000000Z"

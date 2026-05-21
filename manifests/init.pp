@@ -186,7 +186,10 @@
 #   Directory holding approved authority YAML files.
 # @param bastionvault_manage_authority_dirs
 #   Whether this module should create the authorities / authorities-pending /
-#   tombstoned directories and the control-plane identity dir.
+#   tombstoned directories (always, so operators can stage pending YAMLs
+#   before enabling the control plane) and the control-plane identity dir
+#   (only when `bastionvault_enabled` is true). A commented sample file
+#   `EXAMPLE.yaml.sample` is dropped in `authorities-pending/` for reference.
 # @param bastionvault_recording_fetch_enabled
 #   Allow BastionVault to fetch recording bytes via `/v1/recordings/{rid}`.
 #   Disable for air-gapped deployments.
@@ -203,6 +206,13 @@
 #   Optional hash of approved authority records to drop into
 #   `authorities_dir` as YAML files. Use for GitOps-managed enrolment; for the
 #   approval workflow, leave undef and use the `rustion authority` CLI.
+# @param bastionvault_authorities_pending
+#   Optional hash of pending authority enrolment requests to drop into
+#   `authorities-pending/` as YAML files. The hash key becomes the filename
+#   and the `name:` field if not set explicitly. Use this to stage the
+#   `bvault rustion master export` output via Puppet/Hiera; an operator
+#   still has to approve each entry with `rustion authority approve` and
+#   reload the service. Managed independently of `bastionvault_enabled`.
 # @param manage_selinux
 #   When true, label the rustion directories and ports for SELinux via
 #   `semanage` / `restorecon`. No-op on Debian-family hosts.
@@ -302,6 +312,7 @@ class rustion (
   Integer                                              $bastionvault_health_rate_per_source_per_sec   = 4,
   Integer                                              $bastionvault_health_rate_per_authority_per_sec = 10,
   Optional[Hash]                                       $bastionvault_authorities                      = undef,
+  Optional[Hash]                                       $bastionvault_authorities_pending              = undef,
   Boolean                                              $manage_selinux                                = false,
   String                                               $selinux_config_type                           = 'etc_t',
   String                                               $selinux_data_type                             = 'var_lib_t',
@@ -570,16 +581,13 @@ class rustion (
   }
 
   # --- BastionVault control-plane directories ---
+  #
+  # Managed regardless of `bastionvault_enabled` so operators can stage
+  # pending authority YAMLs ahead of enabling the control plane. The
+  # control-plane identity directory still only appears when bastionvault
+  # is actually turned on, since it holds the hybrid keypair.
 
-  if $bastionvault_enabled and $bastionvault_manage_authority_dirs {
-    file { $_bv_identity_dir:
-      ensure  => 'directory',
-      owner   => 'root',
-      group   => $group,
-      mode    => '0750',
-      require => File[$config_dir],
-    }
-
+  if $bastionvault_manage_authority_dirs {
     file { $_bv_authorities_dir:
       ensure  => 'directory',
       owner   => $user,
@@ -599,6 +607,25 @@ class rustion (
     file { $_bv_tombstoned_dir:
       ensure  => 'directory',
       owner   => $user,
+      group   => $group,
+      mode    => '0750',
+      require => File[$config_dir],
+    }
+
+    file { "${_bv_pending_dir}/EXAMPLE.yaml.sample":
+      ensure  => 'file',
+      owner   => $user,
+      group   => $group,
+      mode    => '0640',
+      source  => 'puppet:///modules/rustion/authority-pending.yaml.sample',
+      require => File[$_bv_pending_dir],
+    }
+  }
+
+  if $bastionvault_enabled and $bastionvault_manage_authority_dirs {
+    file { $_bv_identity_dir:
+      ensure  => 'directory',
+      owner   => 'root',
       group   => $group,
       mode    => '0750',
       require => File[$config_dir],
@@ -773,6 +800,31 @@ class rustion (
         notify  => $_manage_service ? {
           true  => Service[$service_name],
           false => undef,
+        },
+      }
+    }
+  }
+
+  # --- BastionVault pending-authority YAML files ---
+  #
+  # Dropped into `authorities-pending/` for the operator-driven approval
+  # flow (`rustion authority list-pending` / `approve`). The `name:` field
+  # defaults to the hash key when not set explicitly, and `schema_version`
+  # defaults to 1. Service is not notified because pending files don't
+  # affect runtime until approved.
+
+  if $bastionvault_authorities_pending {
+    $bastionvault_authorities_pending.each |String $name, Hash $data| {
+      $_pending_payload = { 'schema_version' => 1, 'name' => $name }.merge($data)
+      file { "${_bv_pending_dir}/${name}.yaml":
+        ensure  => 'file',
+        owner   => $user,
+        group   => $group,
+        mode    => '0640',
+        content => stdlib::to_yaml($_pending_payload),
+        require => $bastionvault_manage_authority_dirs ? {
+          true  => File[$_bv_pending_dir],
+          false => File[$config_dir],
         },
       }
     }

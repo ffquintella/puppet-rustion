@@ -137,7 +137,36 @@ describe 'rustion' do
 
       context 'with bastionvault_enabled => false (default)' do
         it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{\[control_plane\]}) }
-        it { is_expected.not_to contain_file('/srv/application-config/rustion/authorities') }
+        # Authority dirs are managed regardless of bastionvault_enabled so
+        # operators can stage pending enrolment YAMLs ahead of turning the
+        # control plane on. The control-plane identity dir stays gated.
+        it { is_expected.to contain_file('/srv/application-config/rustion/authorities').with_ensure('directory') }
+        it { is_expected.to contain_file('/srv/application-config/rustion/authorities-pending').with_ensure('directory') }
+        it { is_expected.to contain_file('/srv/application-config/rustion/authorities-pending/EXAMPLE.yaml.sample').with_ensure('file') }
+        it { is_expected.not_to contain_file('/srv/application-config/rustion/control-plane') }
+      end
+
+      context 'with bastionvault_authorities_pending => hash (staged enrolment)' do
+        let(:params) do
+          {
+            bastionvault_authorities_pending: {
+              'bv-prod' => {
+                'pubkey_ed25519_b64' => 'AAAA',
+                'pubkey_mldsa65_b64' => 'BBBB',
+                'deployment_id'      => 'deploy-1',
+                'description'        => 'BV prod cluster',
+                'submitted_at'       => '2026-05-21T12:00:00.000000Z',
+              },
+            },
+          }
+        end
+
+        # Works even with bastionvault_enabled => false so YAMLs can be
+        # staged before the control plane is turned on. Per-file resource
+        # uses stdlib::to_yaml; not asserted here because regent's mock
+        # interpreter skips the stdlib fixture (same as approved path).
+        it { is_expected.to compile }
+        it { is_expected.to contain_file('/srv/application-config/rustion/authorities-pending').with_ensure('directory') }
       end
 
       # NOTE: regent's mock interpreter only autoloads manifests/init.pp from
