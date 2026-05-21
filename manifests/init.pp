@@ -64,7 +64,7 @@
 # @param data_dir
 #   Base data directory (under /srv/application-data as defined by baseapp)
 # @param log_dir
-#   Base log directory (under /srv/application-logs as defined by baseapp)
+#   Base log directory (matches the rustion binary default of `/var/log/rustion`)
 # @param ssh_listen
 #   SSH proxy listen address
 # @param rdp_listen
@@ -227,7 +227,7 @@ class rustion (
   String                                               $group                     = 'rustion',
   Stdlib::Absolutepath                                 $config_dir                = '/srv/application-config/rustion',
   Stdlib::Absolutepath                                 $data_dir                  = '/srv/application-data/rustion',
-  Stdlib::Absolutepath                                 $log_dir                   = '/srv/application-logs/rustion',
+  Stdlib::Absolutepath                                 $log_dir                   = '/var/log/rustion',
   String                                               $ssh_listen                = '127.0.0.1:2222',
   String                                               $rdp_listen                = '127.0.0.1:3389',
   String                                               $smb_listen                = '127.0.0.1:4445',

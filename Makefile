@@ -25,13 +25,13 @@ setup:
 	$(BUNDLE) install
 
 fixtures:
-	$(RAKE) spec_prep
+	$(REGENT) fixtures .
 
 test: fixtures
 	$(REGENT) test . --pattern "$(REGENT_TEST_PATTERN)"
 
 validate:
-	$(RAKE) validate
+	$(REGENT) validate .
 
 build:
 	mkdir -p pkg

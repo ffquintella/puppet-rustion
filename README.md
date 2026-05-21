@@ -71,7 +71,7 @@ rustion::mfa_required: true
 | `group` | `String` | `'rustion'` | System group |
 | `config_dir` | `Stdlib::Absolutepath` | `'/srv/application-config/rustion'` | Configuration directory (under baseapp's `/srv/application-config`) |
 | `data_dir` | `Stdlib::Absolutepath` | `'/srv/application-data/rustion'` | Data directory (under baseapp's `/srv/application-data`) |
-| `log_dir` | `Stdlib::Absolutepath` | `'/srv/application-logs/rustion'` | Log directory (under baseapp's `/srv/application-logs`) |
+| `log_dir` | `Stdlib::Absolutepath` | `'/var/log/rustion'` | Log directory (matches the rustion binary default) |
 
 ### Server
 
@@ -202,8 +202,8 @@ in the Rustion repo for the full integration spec.
 | `/srv/application-config/rustion/users/` | rustion | rustion | 0750 |
 | `/srv/application-config/rustion/targets/` | rustion | rustion | 0750 |
 | `/srv/application-config/rustion/roles/` | rustion | rustion | 0750 |
-| `/srv/application-logs/rustion/` | rustion | rustion | 0750 |
-| `/srv/application-logs/rustion/audit/` | rustion | rustion | 0750 |
+| `/var/log/rustion/` | rustion | rustion | 0750 |
+| `/var/log/rustion/audit/` | rustion | rustion | 0750 |
 | `/srv/application-data/rustion/` | rustion | rustion | 0750 |
 | `/srv/application-data/rustion/recordings/` | rustion | rustion | 0750 |
 | `/var/run/rustion/` | rustion | rustion | 0755 |
@@ -212,7 +212,7 @@ in the Rustion repo for the full integration spec.
 | `/srv/application-config/rustion/authorities-pending/` *(if BV enabled)* | rustion | rustion | 0750 |
 | `/srv/application-config/rustion/tombstoned/` *(if BV enabled)* | rustion | rustion | 0750 |
 
-The parent directories `/srv/application-config`, `/srv/application-data`, and `/srv/application-logs` are created by the [`ffquintella/baseapp`](https://github.com/ffquintella/puppet-baseapp) module, which this module pulls in as a dependency.
+The parent directories `/srv/application-config` and `/srv/application-data` are created by the [`ffquintella/baseapp`](https://github.com/ffquintella/puppet-baseapp) module, which this module pulls in as a dependency. Logs live under `/var/log/rustion` to match the rustion binary's built-in default.
 
 ### Configuration
 

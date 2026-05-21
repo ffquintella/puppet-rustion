@@ -27,8 +27,8 @@ describe 'rustion' do
         it { is_expected.to contain_file('/srv/application-config/rustion/users').with_ensure('directory').with_owner('rustion').with_group('rustion').with_mode('0750') }
         it { is_expected.to contain_file('/srv/application-config/rustion/targets').with_ensure('directory').with_owner('rustion').with_group('rustion').with_mode('0750') }
         it { is_expected.to contain_file('/srv/application-config/rustion/roles').with_ensure('directory').with_owner('rustion').with_group('rustion').with_mode('0750') }
-        it { is_expected.to contain_file('/srv/application-logs/rustion').with_ensure('directory').with_owner('rustion').with_group('rustion') }
-        it { is_expected.to contain_file('/srv/application-logs/rustion/audit').with_ensure('directory').with_owner('rustion').with_group('rustion') }
+        it { is_expected.to contain_file('/var/log/rustion').with_ensure('directory').with_owner('rustion').with_group('rustion') }
+        it { is_expected.to contain_file('/var/log/rustion/audit').with_ensure('directory').with_owner('rustion').with_group('rustion') }
         it { is_expected.to contain_file('/srv/application-data/rustion').with_ensure('directory').with_owner('rustion').with_group('rustion') }
         it { is_expected.to contain_file('/srv/application-data/rustion/recordings').with_ensure('directory').with_owner('rustion').with_group('rustion') }
         it { is_expected.to contain_file('/var/run/rustion').with_ensure('directory').with_owner('rustion').with_group('rustion') }
