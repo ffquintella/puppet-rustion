@@ -32,13 +32,12 @@
 # @param manage_service
 #   Whether to manage the systemd service
 # @param bootstrap_complete
-#   Set to true once the rustion admin account has been bootstrapped on this
-#   host. The first time rustion starts it prompts interactively to create the
-#   default admin account; running under systemd that prompt fails (no TTY),
-#   so the module installs and configures rustion but refuses to start the
-#   service until an operator has run the interactive first-start by hand
-#   (e.g. `sudo -u rustion rustion serve --config /srv/application-config/rustion/rustion.toml`)
-#   and then flipped this flag (via Hiera) to true.
+#   Force the bootstrap-complete state. The module also reads the
+#   `rustion_bootstrap.complete` fact (true when both the default admin
+#   user YAML and the credential master key exist under the default
+#   `config_dir`) and starts the service when either signal is true.
+#   Set this to true in Hiera only if you've overridden `config_dir` or
+#   want to bypass auto-detection.
 # @param manage_package
 #   Whether to manage the rustion package. Set to false to install
 #   rustion out-of-band (manual rpm/deb, container image, etc.) and let
@@ -317,12 +316,23 @@ class rustion (
   $config_file = "${config_dir}/rustion.toml"
 
   # The first rustion start prompts on TTY for an admin password; under systemd
-  # that always fails. Keep the service unmanaged until the operator has run
-  # the interactive bootstrap and set `bootstrap_complete => true`.
-  $_manage_service = $manage_service and $bootstrap_complete
+  # that always fails. Detect a completed bootstrap by looking for the admin
+  # user YAML and credential master key that the interactive first-start
+  # writes, and fall back to the explicit `bootstrap_complete` parameter for
+  # operators who want to force the state via Hiera.
+  $_rb_fact = $facts['rustion_bootstrap']
+  $_fact_bootstrap = $_rb_fact ? {
+    Hash    => $_rb_fact['complete'] ? {
+      true    => true,
+      default => false,
+    },
+    default => false,
+  }
+  $_bootstrap_complete = $bootstrap_complete or $_fact_bootstrap
+  $_manage_service = $manage_service and $_bootstrap_complete
 
-  if $manage_service and !$bootstrap_complete {
-    $_bootstrap_msg = "rustion: service not started - admin account has not been bootstrapped on this host. Run the interactive first-start as the rustion user to create the default admin: sudo -u ${user} ${service_name} serve --config ${config_dir}/${service_name}.toml ; follow the password prompt, then stop the process (Ctrl-C), set rustion::bootstrap_complete: true in Hiera, and re-run the agent."
+  if $manage_service and !$_bootstrap_complete {
+    $_bootstrap_msg = "rustion: service not started - admin account has not been bootstrapped on this host. Run the interactive first-start as the rustion user to create the default admin: sudo -u ${user} ${service_name} serve --config ${config_dir}/${service_name}.toml ; follow the password prompt, then stop the process (Ctrl-C), then re-run the agent (auto-detected via the rustion_bootstrap fact, or set rustion::bootstrap_complete: true in Hiera to force)."
 
     notify { 'rustion-bootstrap-required':
       message  => $_bootstrap_msg,
