@@ -42,17 +42,17 @@
   String  $console_format,
   String  $log_level,
   Boolean          $bastionvault_enabled,
-  String           $bastionvault_bind,
-  Optional[String] $bastionvault_tls_cert,
-  Optional[String] $bastionvault_tls_key,
-  String           $bastionvault_identity_pub,
-  String           $bastionvault_identity_priv,
+  String           $bastionvault_listen,
+  Optional[String] $bastionvault_tls_cert_path,
+  Optional[String] $bastionvault_tls_key_path,
+  Optional[String] $bastionvault_client_ca_path,
+  String           $bastionvault_identity_dir,
   String           $bastionvault_authorities_dir,
-  Boolean          $bastionvault_recording_fetch_enabled,
-  Integer          $bastionvault_active_session_cap,
-  Integer          $bastionvault_max_envelope_bytes,
-  Integer          $bastionvault_health_rate_per_source_per_sec,
-  Integer          $bastionvault_health_rate_per_authority_per_sec,
+  String           $bastionvault_ssh_advertise,
+  String           $bastionvault_rdp_advertise,
+  Integer          $bastionvault_replay_window,
+  Integer          $bastionvault_telemetry_rate_capacity,
+  String           $bastionvault_telemetry_rate_refill,
 | -%>
 # Managed by Puppet -- DO NOT EDIT
 
@@ -134,21 +134,21 @@ console_format = "<%= $console_format %>"
 # See docs/bastionvault-integration.md in the Rustion repo.
 [control_plane]
 enabled = true
-bind = "<%= $bastionvault_bind %>"
-<% if $bastionvault_tls_cert { -%>
-tls_cert = "<%= $bastionvault_tls_cert %>"
+listen = "<%= $bastionvault_listen %>"
+<% if $bastionvault_tls_cert_path { -%>
+tls_cert_path = "<%= $bastionvault_tls_cert_path %>"
 <% } -%>
-<% if $bastionvault_tls_key { -%>
-tls_key  = "<%= $bastionvault_tls_key %>"
+<% if $bastionvault_tls_key_path { -%>
+tls_key_path = "<%= $bastionvault_tls_key_path %>"
 <% } -%>
-identity_pub  = "<%= $bastionvault_identity_pub %>"
-identity_priv = "<%= $bastionvault_identity_priv %>"
+<% if $bastionvault_client_ca_path { -%>
+client_ca_path = "<%= $bastionvault_client_ca_path %>"
+<% } -%>
+identity_dir = "<%= $bastionvault_identity_dir %>"
 authorities_dir = "<%= $bastionvault_authorities_dir %>"
-recording_fetch_enabled = <%= $bastionvault_recording_fetch_enabled %>
-active_session_cap = <%= $bastionvault_active_session_cap %>
-max_envelope_bytes = <%= $bastionvault_max_envelope_bytes %>
-
-[control_plane.health]
-rate_per_source_per_sec = <%= $bastionvault_health_rate_per_source_per_sec %>
-rate_per_authority_per_sec = <%= $bastionvault_health_rate_per_authority_per_sec %>
+ssh_advertise = "<%= $bastionvault_ssh_advertise %>"
+rdp_advertise = "<%= $bastionvault_rdp_advertise %>"
+replay_window = <%= $bastionvault_replay_window %>
+telemetry_rate_capacity = <%= $bastionvault_telemetry_rate_capacity %>
+telemetry_rate_refill = <%= $bastionvault_telemetry_rate_refill %>
 <% } -%>

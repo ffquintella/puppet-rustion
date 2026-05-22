@@ -107,9 +107,11 @@ describe 'rustion' do
         let(:params) do
           {
             bastionvault_enabled: true,
-            bastionvault_bind: '0.0.0.0:9443',
-            bastionvault_tls_cert: '/etc/rustion/control-plane/cert.pem',
-            bastionvault_tls_key: '/etc/rustion/control-plane/key.pem',
+            bastionvault_listen: '0.0.0.0:9443',
+            bastionvault_tls_cert_path: '/etc/rustion/control-plane/cert.pem',
+            bastionvault_tls_key_path: '/etc/rustion/control-plane/key.pem',
+            bastionvault_ssh_advertise: 'bastion.example.com:2222',
+            bastionvault_rdp_advertise: 'bastion.example.com:3389',
             bastionvault_authorities: {
               'bastion-vault-prod' => {
                 'name'              => 'bastion-vault-prod',
@@ -129,10 +131,48 @@ describe 'rustion' do
         # NOTE: per-authority YAML files use stdlib::to_yaml; not asserted here
         # because regent's mock interpreter skips the stdlib fixture.
         it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{\[control_plane\]}) }
-        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{bind = "0\.0\.0\.0:9443"}) }
-        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{tls_cert = "/etc/rustion/control-plane/cert\.pem"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{\nlisten = "0\.0\.0\.0:9443"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{tls_cert_path = "/etc/rustion/control-plane/cert\.pem"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{tls_key_path = "/etc/rustion/control-plane/key\.pem"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{identity_dir = "/srv/application-config/rustion/control-plane"}) }
         it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{authorities_dir = "/srv/application-config/rustion/authorities"}) }
-        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{\[control_plane\.health\]}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{ssh_advertise = "bastion\.example\.com:2222"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{rdp_advertise = "bastion\.example\.com:3389"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{replay_window = 8192}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{telemetry_rate_capacity = 60}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{telemetry_rate_refill = 1}) }
+        # Old keys / removed sub-tables must not appear (would fail rustion 0.9.0 parsing).
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{\nbind =}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{recording_fetch_enabled}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{active_session_cap}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{max_envelope_bytes}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{\[control_plane\.health\]}) }
+      end
+
+      context 'with bastionvault_client_ca_path => set (mTLS)' do
+        let(:params) do
+          {
+            bastionvault_enabled: true,
+            bastionvault_tls_cert_path: '/etc/rustion/control-plane/cert.pem',
+            bastionvault_tls_key_path: '/etc/rustion/control-plane/key.pem',
+            bastionvault_client_ca_path: '/etc/rustion/control-plane/client-ca.pem',
+          }
+        end
+
+        it { is_expected.to compile }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{client_ca_path = "/etc/rustion/control-plane/client-ca\.pem"}) }
+      end
+
+      context 'with bastionvault_client_ca_path => undef (default, no mTLS)' do
+        let(:params) do
+          {
+            bastionvault_enabled: true,
+            bastionvault_tls_cert_path: '/etc/rustion/control-plane/cert.pem',
+            bastionvault_tls_key_path: '/etc/rustion/control-plane/key.pem',
+          }
+        end
+
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{client_ca_path}) }
       end
 
       context 'with bastionvault_enabled => false (default)' do
