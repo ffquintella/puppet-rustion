@@ -165,9 +165,13 @@
 # @param roles
 #   Optional hash of role definitions to create as YAML files
 # @param bastionvault_enabled
-#   Enable the BastionVault control-plane integration (renders `[control_plane]`
-#   in `rustion.toml`, manages `authorities/`, `authorities-pending/`,
-#   `tombstoned/` and the control-plane identity directory).
+#   Enable the BastionVault control-plane integration. The `[control_plane]`
+#   section is always rendered in `rustion.toml` (so `identity_dir` and
+#   `authorities_dir` always point at the puppet-managed paths under
+#   `$config_dir` instead of rustion's built-in `/opt/rustion/...` fallback);
+#   `enabled` flips with this parameter, and the listener / TLS / advertise /
+#   replay / telemetry keys are only emitted when true. Also gates creation
+#   of the control-plane identity directory.
 # @param bastionvault_listen
 #   Listen address (SocketAddr) for the BastionVault control-plane HTTPS endpoint.
 #   Renders as `listen = ...` in `[control_plane]`.

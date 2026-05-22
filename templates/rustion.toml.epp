@@ -128,20 +128,24 @@ retention_days = <%= $recording_retention_days %>
 log_level = "<%= $log_level %>"
 log_file = "<%= $log_file %>"
 console_format = "<%= $console_format %>"
-<% if $bastionvault_enabled { -%>
 
 # --- BastionVault control-plane integration ---
+# Always emitted so identity_dir / authorities_dir point at the
+# puppet-managed locations under $config_dir even when the control plane
+# is disabled -- otherwise rustion falls back to its built-in defaults
+# (e.g. /opt/rustion/control-plane), which don't exist on this host.
 # See docs/bastionvault-integration.md in the Rustion repo.
 [control_plane]
-enabled = true
+enabled = <%= $bastionvault_enabled %>
+identity_dir = "<%= $bastionvault_identity_dir %>"
+authorities_dir = "<%= $bastionvault_authorities_dir %>"
+<% if $bastionvault_enabled { -%>
 listen = "<%= $bastionvault_listen %>"
 tls_cert_path = "<%= $bastionvault_tls_cert_path %>"
 tls_key_path = "<%= $bastionvault_tls_key_path %>"
 <% if $bastionvault_client_ca_path { -%>
 client_ca_path = "<%= $bastionvault_client_ca_path %>"
 <% } -%>
-identity_dir = "<%= $bastionvault_identity_dir %>"
-authorities_dir = "<%= $bastionvault_authorities_dir %>"
 ssh_advertise = "<%= $bastionvault_ssh_advertise %>"
 rdp_advertise = "<%= $bastionvault_rdp_advertise %>"
 replay_window = <%= $bastionvault_replay_window %>

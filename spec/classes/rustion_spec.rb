@@ -229,7 +229,13 @@ describe 'rustion' do
       end
 
       context 'with bastionvault_enabled => false (default)' do
-        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{\[control_plane\]}) }
+        # `[control_plane]` is always emitted so identity_dir / authorities_dir
+        # point at the puppet-managed locations under $config_dir; otherwise
+        # rustion would fall back to its built-in `/opt/rustion/...` defaults.
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{\[control_plane\]\nenabled = false\n}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{identity_dir = "/srv/application-config/rustion/control-plane"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{authorities_dir = "/srv/application-config/rustion/authorities"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{^listen =}) }
         # Authority dirs are managed regardless of bastionvault_enabled so
         # operators can stage pending enrolment YAMLs ahead of turning the
         # control plane on. The control-plane identity dir stays gated.
