@@ -197,10 +197,29 @@ describe 'rustion' do
         it { is_expected.not_to compile }
       end
 
-      context 'with bastionvault_enabled and explicit tls paths => no self-sign' do
+      context 'with bastionvault_enabled and explicit tls paths => self-sign at those paths' do
         let(:params) do
           {
             bastionvault_enabled: true,
+            bastionvault_tls_cert_path: '/srv/application-config/rustion/tls/server.crt',
+            bastionvault_tls_key_path: '/srv/application-config/rustion/tls/server.key',
+          }
+        end
+
+        # Self-sign uses operator-provided paths; openssl creates parent dirs
+        # so the cert lands wherever the operator put it. `creates =>` makes
+        # the exec a no-op once a real cert is dropped in.
+        it { is_expected.to contain_exec('rustion-bv-tls-selfsigned').with_creates('/srv/application-config/rustion/tls/server.crt') }
+        it { is_expected.to contain_file('/srv/application-config/rustion/tls/server.crt') }
+        it { is_expected.to contain_file('/srv/application-config/rustion/tls/server.key') }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{tls_cert_path = "/srv/application-config/rustion/tls/server\.crt"}) }
+      end
+
+      context 'with bastionvault_enabled and bastionvault_manage_tls => false and explicit paths' do
+        let(:params) do
+          {
+            bastionvault_enabled: true,
+            bastionvault_manage_tls: false,
             bastionvault_tls_cert_path: '/etc/rustion/control-plane/cert.pem',
             bastionvault_tls_key_path: '/etc/rustion/control-plane/key.pem',
           }

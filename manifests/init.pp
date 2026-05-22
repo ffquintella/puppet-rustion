@@ -403,7 +403,11 @@ class rustion (
     default => $bastionvault_tls_key_path,
   }
 
-  if $bastionvault_enabled and $bastionvault_manage_tls and $bastionvault_tls_cert_path == undef and $bastionvault_tls_key_path == undef {
+  # Auto-generate a self-signed cert + key whenever bastionvault is on and
+  # manage_tls is true (default). Works for both default and operator-provided
+  # paths -- the exec is idempotent via `creates => $cert_path`, so once a
+  # real cert is in place the openssl call is skipped.
+  if $bastionvault_enabled and $bastionvault_manage_tls {
     $_manage_bv_tls = true
   } else {
     $_manage_bv_tls = false
@@ -411,7 +415,7 @@ class rustion (
 
   if $bastionvault_enabled and !$_manage_bv_tls {
     if $bastionvault_tls_cert_path == undef or $bastionvault_tls_key_path == undef {
-      fail('rustion: bastionvault_tls_cert_path and bastionvault_tls_key_path are required when bastionvault_enabled is true (or leave both undef and set bastionvault_manage_tls => true to auto-generate a self-signed cert)')
+      fail('rustion: bastionvault_tls_cert_path and bastionvault_tls_key_path are required when bastionvault_enabled is true (or set bastionvault_manage_tls => true to auto-generate a self-signed cert)')
     }
   }
 
@@ -677,11 +681,14 @@ class rustion (
   # `bastionvault_tls_key_path` explicitly.
 
   if $_manage_bv_tls {
+    # Use the shell provider so $(dirname ...) is evaluated -- the cert/key
+    # paths may be operator-provided in arbitrary locations, and we ensure
+    # the parent dir exists before openssl runs.
     exec { 'rustion-bv-tls-selfsigned':
-      command => "openssl req -x509 -newkey ed25519 -nodes -keyout ${_bv_tls_key_path} -out ${_bv_tls_cert_path} -days ${bastionvault_tls_cert_days} -subj '${_bv_tls_subject}'",
-      creates => $_bv_tls_cert_path,
-      path    => ['/usr/bin', '/bin', '/usr/sbin', '/sbin'],
-      require => File[$_bv_identity_dir],
+      command  => "mkdir -p \$(dirname '${_bv_tls_cert_path}') \$(dirname '${_bv_tls_key_path}') && openssl req -x509 -newkey ed25519 -nodes -keyout '${_bv_tls_key_path}' -out '${_bv_tls_cert_path}' -days ${bastionvault_tls_cert_days} -subj '${_bv_tls_subject}'",
+      provider => 'shell',
+      creates  => $_bv_tls_cert_path,
+      path     => ['/usr/bin', '/bin', '/usr/sbin', '/sbin'],
     }
 
     file { $_bv_tls_cert_path:
@@ -698,6 +705,12 @@ class rustion (
       group   => $group,
       mode    => '0640',
       require => Exec['rustion-bv-tls-selfsigned'],
+    }
+
+    # Ensure cert exists before systemd starts rustion (which validates
+    # that tls_cert_path / tls_key_path exist at startup).
+    if $_manage_service {
+      Exec['rustion-bv-tls-selfsigned'] -> Service[$service_name]
     }
   }
 
