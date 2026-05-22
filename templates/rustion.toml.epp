@@ -43,8 +43,8 @@
   String  $log_level,
   Boolean          $bastionvault_enabled,
   String           $bastionvault_listen,
-  Optional[String] $bastionvault_tls_cert_path,
-  Optional[String] $bastionvault_tls_key_path,
+  String           $bastionvault_tls_cert_path,
+  String           $bastionvault_tls_key_path,
   Optional[String] $bastionvault_client_ca_path,
   String           $bastionvault_identity_dir,
   String           $bastionvault_authorities_dir,
@@ -135,12 +135,8 @@ console_format = "<%= $console_format %>"
 [control_plane]
 enabled = true
 listen = "<%= $bastionvault_listen %>"
-<% if $bastionvault_tls_cert_path { -%>
 tls_cert_path = "<%= $bastionvault_tls_cert_path %>"
-<% } -%>
-<% if $bastionvault_tls_key_path { -%>
 tls_key_path = "<%= $bastionvault_tls_key_path %>"
-<% } -%>
 <% if $bastionvault_client_ca_path { -%>
 client_ca_path = "<%= $bastionvault_client_ca_path %>"
 <% } -%>

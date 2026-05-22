@@ -309,6 +309,9 @@ class rustion (
   String                                               $bastionvault_listen                           = '0.0.0.0:9443',
   Optional[Stdlib::Absolutepath]                       $bastionvault_tls_cert_path                    = undef,
   Optional[Stdlib::Absolutepath]                       $bastionvault_tls_key_path                     = undef,
+  Boolean                                              $bastionvault_manage_tls                       = true,
+  Integer[1]                                           $bastionvault_tls_cert_days                    = 3650,
+  Optional[String]                                     $bastionvault_tls_cert_subject                 = undef,
   Optional[Stdlib::Absolutepath]                       $bastionvault_client_ca_path                   = undef,
   Optional[Stdlib::Absolutepath]                       $bastionvault_identity_dir                     = undef,
   Optional[Stdlib::Absolutepath]                       $bastionvault_authorities_dir                  = undef,
@@ -391,10 +394,41 @@ class rustion (
   $_bv_pending_dir     = "${config_dir}/authorities-pending"
   $_bv_tombstoned_dir  = "${config_dir}/tombstoned"
 
-  if $bastionvault_enabled {
+  $_bv_tls_cert_path = $bastionvault_tls_cert_path ? {
+    undef   => "${_bv_identity_dir}/tls.crt",
+    default => $bastionvault_tls_cert_path,
+  }
+  $_bv_tls_key_path = $bastionvault_tls_key_path ? {
+    undef   => "${_bv_identity_dir}/tls.key",
+    default => $bastionvault_tls_key_path,
+  }
+
+  if $bastionvault_enabled and $bastionvault_manage_tls and $bastionvault_tls_cert_path == undef and $bastionvault_tls_key_path == undef {
+    $_manage_bv_tls = true
+  } else {
+    $_manage_bv_tls = false
+  }
+
+  if $bastionvault_enabled and !$_manage_bv_tls {
     if $bastionvault_tls_cert_path == undef or $bastionvault_tls_key_path == undef {
-      fail('rustion: bastionvault_tls_cert_path and bastionvault_tls_key_path are required when bastionvault_enabled is true')
+      fail('rustion: bastionvault_tls_cert_path and bastionvault_tls_key_path are required when bastionvault_enabled is true (or leave both undef and set bastionvault_manage_tls => true to auto-generate a self-signed cert)')
     }
+  }
+
+  $_net = $facts['networking']
+  $_fqdn = $_net ? {
+    Hash    => $_net['fqdn'] ? {
+      undef   => $_net['hostname'] ? {
+        undef   => 'rustion',
+        default => $_net['hostname'],
+      },
+      default => $_net['fqdn'],
+    },
+    default => 'rustion',
+  }
+  $_bv_tls_subject = $bastionvault_tls_cert_subject ? {
+    undef   => "/CN=${_fqdn}",
+    default => $bastionvault_tls_cert_subject,
   }
 
   # --- Base application directories under /srv ---
@@ -624,13 +658,46 @@ class rustion (
     }
   }
 
-  if $bastionvault_enabled and $bastionvault_manage_authority_dirs {
+  if $bastionvault_enabled and ($bastionvault_manage_authority_dirs or $_manage_bv_tls) {
     file { $_bv_identity_dir:
       ensure  => 'directory',
       owner   => 'root',
       group   => $group,
       mode    => '0750',
       require => File[$config_dir],
+    }
+  }
+
+  # --- BastionVault self-signed control-plane TLS (optional) ---
+  #
+  # Generates an Ed25519 self-signed cert + key pair the first time the
+  # agent runs with `bastionvault_enabled => true` and no operator-provided
+  # cert/key. Pin the resulting cert into BV's trust store for production,
+  # or swap in your own PKI by setting `bastionvault_tls_cert_path` /
+  # `bastionvault_tls_key_path` explicitly.
+
+  if $_manage_bv_tls {
+    exec { 'rustion-bv-tls-selfsigned':
+      command => "openssl req -x509 -newkey ed25519 -nodes -keyout ${_bv_tls_key_path} -out ${_bv_tls_cert_path} -days ${bastionvault_tls_cert_days} -subj '${_bv_tls_subject}'",
+      creates => $_bv_tls_cert_path,
+      path    => ['/usr/bin', '/bin', '/usr/sbin', '/sbin'],
+      require => File[$_bv_identity_dir],
+    }
+
+    file { $_bv_tls_cert_path:
+      ensure  => 'file',
+      owner   => 'root',
+      group   => $group,
+      mode    => '0644',
+      require => Exec['rustion-bv-tls-selfsigned'],
+    }
+
+    file { $_bv_tls_key_path:
+      ensure  => 'file',
+      owner   => 'root',
+      group   => $group,
+      mode    => '0640',
+      require => Exec['rustion-bv-tls-selfsigned'],
     }
   }
 
@@ -686,8 +753,8 @@ class rustion (
         log_level                 => $log_level,
         bastionvault_enabled                  => $bastionvault_enabled,
         bastionvault_listen                   => $bastionvault_listen,
-        bastionvault_tls_cert_path            => $bastionvault_tls_cert_path,
-        bastionvault_tls_key_path             => $bastionvault_tls_key_path,
+        bastionvault_tls_cert_path            => $_bv_tls_cert_path,
+        bastionvault_tls_key_path             => $_bv_tls_key_path,
         bastionvault_client_ca_path           => $bastionvault_client_ca_path,
         bastionvault_identity_dir             => $_bv_identity_dir,
         bastionvault_authorities_dir          => $_bv_authorities_dir,

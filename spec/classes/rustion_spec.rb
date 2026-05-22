@@ -175,6 +175,40 @@ describe 'rustion' do
         it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{client_ca_path}) }
       end
 
+      context 'with bastionvault_enabled and no tls paths => self-signed' do
+        let(:params) { { bastionvault_enabled: true } }
+
+        it { is_expected.to compile }
+        it { is_expected.to contain_exec('rustion-bv-tls-selfsigned').with_creates('/srv/application-config/rustion/control-plane/tls.crt') }
+        it { is_expected.to contain_file('/srv/application-config/rustion/control-plane/tls.crt').with_mode('0644') }
+        it { is_expected.to contain_file('/srv/application-config/rustion/control-plane/tls.key').with_mode('0640') }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{tls_cert_path = "/srv/application-config/rustion/control-plane/tls\.crt"}) }
+        it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').with_content(%r{tls_key_path = "/srv/application-config/rustion/control-plane/tls\.key"}) }
+      end
+
+      context 'with bastionvault_enabled and bastionvault_manage_tls => false and no paths' do
+        let(:params) do
+          {
+            bastionvault_enabled: true,
+            bastionvault_manage_tls: false,
+          }
+        end
+
+        it { is_expected.not_to compile }
+      end
+
+      context 'with bastionvault_enabled and explicit tls paths => no self-sign' do
+        let(:params) do
+          {
+            bastionvault_enabled: true,
+            bastionvault_tls_cert_path: '/etc/rustion/control-plane/cert.pem',
+            bastionvault_tls_key_path: '/etc/rustion/control-plane/key.pem',
+          }
+        end
+
+        it { is_expected.not_to contain_exec('rustion-bv-tls-selfsigned') }
+      end
+
       context 'with bastionvault_enabled => false (default)' do
         it { is_expected.to contain_file('/srv/application-config/rustion/rustion.toml').without_content(%r{\[control_plane\]}) }
         # Authority dirs are managed regardless of bastionvault_enabled so

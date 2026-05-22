@@ -178,8 +178,11 @@ in the Rustion repo for the full integration spec.
 |-----------|------|---------|-------------|
 | `bastionvault_enabled` | `Boolean` | `false` | Enable the BastionVault control plane |
 | `bastionvault_listen` | `String` | `'0.0.0.0:9443'` | TLS listen address (SocketAddr) for the control plane — renders as `listen` |
-| `bastionvault_tls_cert_path` | `Optional[Stdlib::Absolutepath]` | `undef` | TLS certificate path (required when enabled) |
-| `bastionvault_tls_key_path` | `Optional[Stdlib::Absolutepath]` | `undef` | TLS private key path (required when enabled) |
+| `bastionvault_tls_cert_path` | `Optional[Stdlib::Absolutepath]` | `undef` | TLS certificate path. When undef and `bastionvault_enabled` is true, the module auto-generates one (see `bastionvault_manage_tls`). Defaults to `${bastionvault_identity_dir}/tls.crt`. |
+| `bastionvault_tls_key_path` | `Optional[Stdlib::Absolutepath]` | `undef` | TLS private key path. Same semantics as `bastionvault_tls_cert_path`. Defaults to `${bastionvault_identity_dir}/tls.key`. |
+| `bastionvault_manage_tls` | `Boolean` | `true` | Auto-generate a self-signed Ed25519 cert + key under `${bastionvault_identity_dir}` when `bastionvault_enabled` is true and both cert/key paths are left undef. Set false to require operator-provisioned cert/key. |
+| `bastionvault_tls_cert_days` | `Integer[1]` | `3650` | Validity period (days) of the auto-generated self-signed cert. |
+| `bastionvault_tls_cert_subject` | `Optional[String]` | `undef` | Subject DN for the self-signed cert (`openssl req -subj`). Defaults to `/CN=<fqdn>` from the `networking.fqdn` fact. |
 | `bastionvault_client_ca_path` | `Optional[Stdlib::Absolutepath]` | `undef` | PEM bundle of trusted client-cert CAs; enables BV-pinned mTLS when set |
 | `bastionvault_identity_dir` | `Optional[Stdlib::Absolutepath]` | `${config_dir}/control-plane` | Directory holding the ML-KEM-768 identity keypair (`identity.pub` / `identity.key`); generated on first run |
 | `bastionvault_authorities_dir` | `Optional[Stdlib::Absolutepath]` | `${config_dir}/authorities` | Approved authority YAML directory |
