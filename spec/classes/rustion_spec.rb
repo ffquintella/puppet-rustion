@@ -124,7 +124,7 @@ describe 'rustion' do
         end
 
         it { is_expected.to compile }
-        it { is_expected.to contain_file('/srv/application-config/rustion/control-plane').with_ensure('directory').with_owner('root').with_group('rustion').with_mode('0750') }
+        it { is_expected.to contain_file('/srv/application-config/rustion/control-plane').with_ensure('directory').with_owner('rustion').with_group('rustion').with_mode('0750') }
         it { is_expected.to contain_file('/srv/application-config/rustion/authorities').with_ensure('directory').with_owner('rustion').with_group('rustion').with_mode('0750') }
         it { is_expected.to contain_file('/srv/application-config/rustion/authorities-pending').with_ensure('directory') }
         it { is_expected.to contain_file('/srv/application-config/rustion/tombstoned').with_ensure('directory') }

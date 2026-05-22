@@ -663,9 +663,12 @@ class rustion (
   }
 
   if $bastionvault_enabled and ($bastionvault_manage_authority_dirs or $_manage_bv_tls) {
+    # Rustion writes its ML-KEM-768 identity keypair (identity.pub /
+    # identity.key) into this dir on first run, so it must be owned by
+    # the service user, not root.
     file { $_bv_identity_dir:
       ensure  => 'directory',
-      owner   => 'root',
+      owner   => $user,
       group   => $group,
       mode    => '0750',
       require => File[$config_dir],
